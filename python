@@ -1,0 +1,91 @@
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from transformers import pipeline
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+# Sample evaluation sentences to test all three methods
+test_sentences = [
+    "I absolutely love this new feature! It makes everything so much easier. 😍",
+    "The service was terrible and the staff was extremely rude.",
+    "The product was okay, not bad but nothing special either.",
+    "The flight was delayed, but the staff handled it beautifully.",
+]
+
+print("=" * 60)
+print("METHOD 1: RULE-BASED APPROACH (VADER)")
+print("=" * 60)
+
+# Initialize VADER analyzer
+vader_analyzer = SentimentIntensityAnalyzer()
+
+for text in test_sentences:
+    # VADER outputs positive, negative, neutral, and a combined compound score
+    scores = vader_analyzer.polarity_scores(text)
+    compound = scores["compound"]
+
+    # Determine label based on standard VADER thresholds
+    if compound >= 0.05:
+        sentiment = "POSITIVE"
+    elif compound <= -0.05:
+        sentiment = "NEGATIVE"
+    else:
+        sentiment = "NEUTRAL"
+
+    print(f"Text:  {text}")
+    print(f"Score: {scores}")
+    print(f"Label: {sentiment}\n")
+
+
+print("=" * 60)
+print("METHOD 2: TRADITIONAL MACHINE LEARNING (TF-IDF + LOGISTIC REGRESSION)")
+print("=" * 60)
+
+# 1. Create a dummy labeled dataset to train the model
+training_corpus = [
+    "This is great and amazing",
+    "I loved the experience",
+    "Fantastic product, highly recommend",
+    "Awful quality, very disappointed",
+    "Worst service ever, hate it",
+    "Terrible experience, never buying again",
+    "It was ordinary and average",
+    "The movie was okay I guess",
+]
+# 1 = Positive, 0 = Negative, 2 = Neutral
+training_labels = [1, 1, 1, 0, 0, 0, 2, 2]
+
+# 2. Vectorize the text data (Convert text to numerical features)
+vectorizer = TfidfVectorizer(lowercase=True, stop_words="english")
+X_train = vectorizer.fit_transform(training_corpus)
+y_train = np.array(training_labels)
+
+# 3. Train a basic Logistic Regression classifier
+ml_model = LogisticRegression()
+ml_model.fit(X_train, y_train)
+
+# 4. Predict on our test sentences
+X_test = vectorizer.transform(test_sentences)
+predictions = ml_model.predict(X_test)
+label_map = {1: "POSITIVE", 0: "NEGATIVE", 2: "NEUTRAL"}
+
+for text, pred in zip(test_sentences, predictions):
+    print(f"Text:  {text}")
+    print(f"Label: {label_map[pred]}\n")
+
+
+print("=" * 60)
+print("METHOD 3: TRANSFORMERS & DEEP LEARNING (HUGGING FACE)")
+print("=" * 60)
+
+# Initialize the pipeline (downloads a default pre-trained DistilBERT model)
+# Use device=0 if you have a GPU configured, otherwise -1 defaults to CPU
+hf_classifier = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+
+# Run predictions
+hf_results = hf_classifier(test_sentences)
+
+for text, result in zip(test_sentences, hf_results):
+    print(f"Text:  {text}")
+    print(f"Label: {result['label']} (Confidence: {result['score']:.4f})\n")
