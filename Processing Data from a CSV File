@@ -1,0 +1,59 @@
+In the real world, you rarely analyze hardcoded lists. Instead, you'll read data from a file, process it, and save the results back.
+Make sure you have pandas installed:
+
+pip install pandas
+
+Assuming you have a file named reviews.csv that looks like this:
+
+ReviewText
+This product is incredible!
+Broke on the first day, do not buy.
+
+Here is how you parse that file, apply VADER, Machine Learning, and Transformers, and save the predictions into a brand-new file:
+
+import pandas as pd
+
+# 1. Load your CSV file
+# Replace 'reviews.csv' with your actual file path
+df = pd.read_csv("reviews.csv")
+
+# Ensure your text column has no blank/NaN fields
+df["ReviewText"] = df["ReviewText"].fillna("").astype(str)
+
+
+# ---- 1. Apply VADER ----
+def get_vader_label(text):
+    score = vader_analyzer.polarity_scores(text)["compound"]
+    if score >= 0.05:
+        return "POSITIVE"
+    elif score <= -0.05:
+        return "NEGATIVE"
+    return "NEUTRAL"
+
+
+df["VADER_Sentiment"] = df["ReviewText"].apply(get_vader_label)
+
+
+# ---- 2. Apply Loaded Machine Learning Model ----
+# Transform the text using the loaded vectorizer first
+text_features = loaded_vectorizer.transform(df["ReviewText"])
+ml_predictions = loaded_ml_model.predict(text_features)
+
+label_map = {1: "POSITIVE", 0: "NEGATIVE", 2: "NEUTRAL"}
+df["ML_Sentiment"] = [label_map[pred] for pred in ml_predictions]
+
+
+# ---- 3. Apply Loaded Transformer (Hugging Face) ----
+# Hugging Face pipelines can handle lists natively, which is much faster than .apply()
+texts_list = df["ReviewText"].tolist()
+hf_outputs = loaded_hf_pipeline(texts_list)
+
+# Extract just the labels from the output list of dictionaries
+df["Transformer_Sentiment"] = [output["label"] for output in hf_outputs]
+df["Transformer_Confidence"] = [output["score"] for output in hf_outputs]
+
+
+# ---- 4. Save Results to a New CSV ----
+df.to_csv("reviews_analyzed.csv", index=False)
+print("Analysis complete! File saved as 'reviews_analyzed.csv'")
+
