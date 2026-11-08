@@ -1,0 +1,43 @@
+import os
+import pickle
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
+
+# ==========================================
+# SAVING MODELS (Do this after training)
+# ==========================================
+
+# 1. Save Scikit-Learn Model & Vectorizer
+# Assuming 'ml_model' and 'vectorizer' are trained from the previous step
+os.makedirs("models/ml_model", exist_ok=True)
+with open("models/ml_model/classifier.pkl", "wb") as f:
+    pickle.dump(ml_model, f)
+with open("models/ml_model/vectorizer.pkl", "wb") as f:
+    pickle.dump(vectorizer, f)
+
+# 2. Save Hugging Face Transformer Model Locally
+# This saves the model architecture, weights, and tokenizer files locally
+os.makedirs("models/transformer_model", exist_ok=True)
+hf_classifier.model.save_pretrained("models/transformer_model")
+hf_classifier.tokenizer.save_pretrained("models/transformer_model")
+
+
+# ==========================================
+# LOADING MODELS (Use this in your app script)
+# ==========================================
+
+# 1. Load Scikit-Learn Model
+with open("models/ml_model/classifier.pkl", "rb") as f:
+    loaded_ml_model = pickle.load(f)
+with open("models/ml_model/vectorizer.pkl", "rb") as f:
+    loaded_vectorizer = pickle.load(f)
+
+# 2. Load Hugging Face Model
+loaded_tokenizer = AutoTokenizer.from_pretrained("models/transformer_model")
+loaded_model = AutoModelForSequenceClassification.from_pretrained(
+    "models/transformer_model"
+)
+loaded_hf_pipeline = pipeline(
+    "sentiment-analysis", model=loaded_model, tokenizer=loaded_tokenizer
+)
+
+print("All models successfully saved and reloaded from disk!")
